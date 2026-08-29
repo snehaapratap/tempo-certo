@@ -5,15 +5,16 @@ from zoneinfo import ZoneInfo
 
 from . import config, i18n
 from .i18n import t
+from .notifiers import resolve_first_name
 
 
-def _accroche(today_label):
+def _accroche(today_label, first_name):
     parts = []
     if config.GREETING_ENABLED:
         parts.append(i18n.greeting_word())
-    if config.USER_FIRST_NAME:
-        parts.append(config.USER_FIRST_NAME)
-    prefix = ", ".join(parts)
+    if first_name:
+        parts.append(first_name)
+    prefix = " ".join(parts)
     if prefix:
         return t("accroche_prefixed", prefix=prefix, date=today_label)
     return t("accroche_plain", date=today_label)
@@ -65,9 +66,10 @@ def _windows_section(windows):
 
 def build_message(windows, clothing):
     today_label = datetime.now(ZoneInfo(config.TIMEZONE)).strftime(config.DATE_FORMAT)
+    first_name = resolve_first_name()
 
     lines = [
-        _accroche(today_label),
+        _accroche(today_label, first_name),
         "",
         t("today_title"),
         _today_section(clothing),
