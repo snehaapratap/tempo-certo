@@ -38,6 +38,40 @@ def send_ntfy(message):
     )
 
 
+def get_telegram_first_name():
+    """
+    Fetch the chat's first name via Telegram's getChat API.
+    Returns None on any failure (network error, timeout, non-ok response,
+    missing field) — never raises, so a Telegram hiccup can't crash the run.
+    """
+    url = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/getChat"
+    try:
+        resp = requests.get(url, params={"chat_id": config.TELEGRAM_CHAT_ID}, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        if not data.get("ok"):
+            return None
+        return data.get("result", {}).get("first_name") or None
+    except Exception as e:
+        logger.warning("Failed to fetch first name from Telegram: %s", e)
+        return None
+
+
+def resolve_first_name():
+    """
+    Determine the first name to use in the notification greeting, in
+    priority order:
+      1. config.USER_FIRST_NAME, if set
+      2. Telegram's getChat API, if NOTIFY_METHOD is "telegram"
+      3. None (the greeting is then sent without a first name)
+    """
+    if config.USER_FIRST_NAME:
+        return config.USER_FIRST_NAME
+    if config.NOTIFY_METHOD == "telegram":
+        return get_telegram_first_name()
+    return None
+
+
 def send_email(message):
     msg = MIMEText(strip_markdown(message))
     msg["Subject"] = "Tempo Certo — conseils du jour"
